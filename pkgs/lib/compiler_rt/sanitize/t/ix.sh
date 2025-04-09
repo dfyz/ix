@@ -21,6 +21,22 @@ sed -i \
   '/SANITIZER_SOURCES_NOTERMINATION/a sanitizer_fakes.cpp' \
   compiler-rt/lib/sanitizer_common/CMakeLists.txt
 
+# Intercept the function at compile-time instead of run-time.
+sed -i \
+'
+/#endif.*INTERCEPTION_LINUX_H/i\
+#undef INTERCEPT_FUNCTION_LINUX_OR_FREEBSD\
+#define INTERCEPT_FUNCTION_LINUX_OR_FREEBSD(func) (REAL(func) = &__real_##func)
+' \
+  compiler-rt/lib/interception/interception_linux.h
+
+sed -i \
+'
+/# define DECLARE_REAL(ret_type, func, ...)            \\\|#  define DEFINE_REAL(ret_type, func, ...)            \\/a\
+    extern "C" ret_type __real_##func(__VA_ARGS__); \\
+' \
+  compiler-rt/lib/interception/interception.h
+
 base64 -d << EOF > compiler-rt/lib/sanitizer_common/sanitizer_fakes.cpp
 {% include 'fakes.cpp/base64' %}
 EOF
