@@ -62,10 +62,18 @@ ${PWD}/compiler-rt/include
 
 {% block env %}
 export LDFLAGS="-resource-dir=${out} \${LDFLAGS}"
+export SANITIZER_INTERCEPTED_SYMBOLS="${out}/lib/aux/intercepted_symbols.txt"
 {% endblock %}
 
 {% block install %}
 {{super()}}
 mkdir -p ${out}/include
 cp -R compiler-rt/include/sanitizer ${out}/include
+mkdir -p ${out}/share
+find ${out}/lib -name '*.a' | xargs llvm-nm -j | sed -n '/^___interceptor_/s/^___interceptor_//p' | sort -u > ${out}/share/intercepted_symbols.txt
+# We always want to use the intercepted function handlers, so make them non-weak.
+find ${out}/lib -name '*.a' | while read l
+do
+  llvm-objcopy --globalize-symbols=${out}/share/intercepted_symbols.txt ${l}
+done
 {% endblock %}
