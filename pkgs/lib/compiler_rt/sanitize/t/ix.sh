@@ -72,7 +72,7 @@ dlsym
 
 {% block env %}
 export LDFLAGS="-resource-dir=${out} \${LDFLAGS}"
-export SANITIZER_INTERCEPTED_SYMBOLS="${out}/lib/aux/intercepted_symbols.txt"
+export SANITIZER_SYMBOLS_TO_REDEFINE="${out}/lib/aux/symbols_to_redefine.txt"
 {% endblock %}
 
 {% block install %}
@@ -86,4 +86,6 @@ find ${out}/lib -name '*.a' | while read l
 do
   llvm-objcopy --globalize-symbols=${out}/share/intercepted_symbols.txt ${l}
 done
+# Any library that wants to define any of the intercepted symbols has to go through this redefinition list.
+sed 's/.*/& __real_&/' ${out}/share/intercepted_symbols.txt > ${out}/share/symbols_to_redefine.txt
 {% endblock %}
