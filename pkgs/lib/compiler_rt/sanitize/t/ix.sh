@@ -16,11 +16,6 @@ sed -i \
   '/volatile auto x = &kDynamic;/d' \
   compiler-rt/lib/interception/interception.h
 
-# Create weak symbols to trick CMake into compiling its "simple test programs".
-sed -i \
-  '/SANITIZER_SOURCES_NOTERMINATION/a sanitizer_fakes.cpp' \
-  compiler-rt/lib/sanitizer_common/CMakeLists.txt
-
 # Intercept the function at compile-time instead of run-time.
 sed -i \
 '
@@ -37,8 +32,19 @@ sed -i \
 ' \
   compiler-rt/lib/interception/interception.h
 
-base64 -d << EOF > compiler-rt/lib/sanitizer_common/sanitizer_fakes.cpp
-{% include 'fakes.cpp/base64' %}
+# With compile-time binding, dlsym() is not used and can be stubbed.
+sed -i \
+  '/SANITIZER_SOURCES_NOTERMINATION/a sanitizer_fake_dlsym.cpp' \
+  compiler-rt/lib/sanitizer_common/CMakeLists.txt
+
+cat << EOF > compiler-rt/lib/sanitizer_common/sanitizer_fake_dlsym.cpp
+#include <stdio.h>
+#include <stdlib.h>
+extern "C"
+void* {{uniq_id}}_dlsym(void* handle, const char* symbol) {
+  fprintf(stderr, "dlsym() was not supposed to be called");
+  abort();
+}
 EOF
 {% endblock %}
 
@@ -58,6 +64,10 @@ COMPILER_RT_BUILD_GWP_ASAN=OFF
 {% block cpp_includes %}
 {{super()}}
 ${PWD}/compiler-rt/include
+{% endblock %}
+
+{% block c_rename_symbol %}
+dlsym
 {% endblock %}
 
 {% block env %}
