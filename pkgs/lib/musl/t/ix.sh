@@ -49,6 +49,12 @@ sed -e '/int main();/a void __asan_init();' -e '/int argc =/i __asan_init();' -i
 cd ${out}/lib
 ar q libcrt.a crt1.o crti.o crtn.o
 ranlib libcrt.a
+{% if sanitize %}
+find ${out}/lib -name '*.a' -or -name '*.o' | while read l
+do
+	llvm-objcopy --redefine-syms=${SANITIZER_SYMBOLS_TO_REDEFINE} ${l}
+done
+{% endif %}
 {% endblock %}
 
 {% block env %}
