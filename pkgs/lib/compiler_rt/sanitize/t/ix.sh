@@ -46,6 +46,11 @@ void* {{uniq_id}}_dlsym(void* handle, const char* symbol) {
   abort();
 }
 EOF
+
+# `__dn_comp` is called `dn_comp` in musl.
+sed -i \
+  's/define DN_COMP_INTERCEPTOR_NAME __dn_comp/define DN_COMP_INTERCEPTOR_NAME dn_comp/' \
+  compiler-rt/lib/sanitizer_common/sanitizer_common_interceptors.inc
 {% endblock %}
 
 {% block cmake_flags %}
@@ -79,13 +84,41 @@ export SANITIZER_SYMBOLS_TO_REDEFINE="${out}/lib/aux/symbols_to_redefine.txt"
 {{super()}}
 mkdir -p ${out}/include
 cp -R compiler-rt/include/sanitizer ${out}/include
-mkdir -p ${out}/share
-find ${out}/lib -name '*.a' | xargs llvm-nm -j | sed -n '/^___interceptor_/s/^___interceptor_//p' | sort -u > ${out}/share/intercepted_symbols.txt
+
+find ${out}/lib -name '*.a' \
+  | xargs llvm-nm -j \
+  | sed -n '/^___interceptor_/ {
+    s/^___interceptor_//
+    # dlopen()/dlclose() are obviously not present in IX
+    # pthread_mutexattr_getprioceiling() is present in POSIX, but not in musl
+    # pthread_mutexattr_getrobust_np() is a GNU extension, so not present in musl
+    # __b64_ntop()/__b64_pton() are not present in musl
+    /^dlopen\|dlclose\|\(pthread_mutexattr_\(getprioceiling\|getrobust_np\)\)\|\(__b64_\(ntop\|pton\)\)$/ {
+      w non_intercepted_symbols.txt
+      b
+    }
+    w intercepted_symbols.txt
+  }'
+
+for fn in intercepted_symbols.txt non_intercepted_symbols.txt
+do
+  sort -u -o ${fn} ${fn}
+done
+
+sed 's/.*/void __real_&(){}/' non_intercepted_symbols.txt > fake_reals.c
+cc -O2 -c fake_reals.c
+ar qs $(find ${out}/lib -name '*libclang_rt.asan-*' | head -n1) fake_reals.o
+
 # We always want to use the intercepted function handlers, so make them non-weak.
 find ${out}/lib -name '*.a' | while read l
 do
-  llvm-objcopy --globalize-symbols=${out}/share/intercepted_symbols.txt ${l}
+  llvm-objcopy \
+    --strip-symbols=non_intercepted_symbols.txt \
+    --globalize-symbols=intercepted_symbols.txt \
+    ${l}
 done
+
 # Any library that wants to define any of the intercepted symbols has to go through this redefinition list.
-sed 's/.*/& __real_&/' ${out}/share/intercepted_symbols.txt > ${out}/share/symbols_to_redefine.txt
+mkdir -p ${out}/share
+sed 's/.*/& __real_&/' intercepted_symbols.txt > ${out}/share/symbols_to_redefine.txt
 {% endblock %}
