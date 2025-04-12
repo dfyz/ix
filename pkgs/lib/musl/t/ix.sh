@@ -52,7 +52,11 @@ ranlib libcrt.a
 {% if sanitize %}
 find ${out}/lib -name '*.a' -or -name '*.o' | while read l
 do
-	llvm-objcopy --redefine-syms=${SANITIZER_SYMBOLS_TO_REDEFINE} ${l}
+	llvm-objcopy \
+		--redefine-syms=${SANITIZER_SYMBOLS_TO_REDEFINE} \
+		--skip-symbol '^(calloc|free|malloc|realloc)$' \
+		--regex \
+		${l}
 done
 {% endif %}
 {% endblock %}
