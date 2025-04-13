@@ -13,6 +13,9 @@ lib/c/naked
 lib/kernel
 lib/shim/alloc
 {% endif %}
+{% if sanitize %}
+lib/shim/sanitizer_support
+{% endif %}
 {% endblock %}
 
 {% block cmake_flags %}
