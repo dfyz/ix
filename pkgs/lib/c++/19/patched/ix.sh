@@ -18,4 +18,14 @@ base64 -d << EOF > ${out}/include/__string/fix.h
 EOF
 sed -e 's|_LIBCPP_END_NAMESPACE_STD|#include "fix.h"|' \
     -i ${out}/include/__string/char_traits.h
+{% if sanitize %}
+for lib in libc++unwind.a libc++abi.a
+do
+  llvm-objcopy \
+    --redefine-syms=${SANITIZER_SYMBOLS_TO_REDEFINE} \
+    --skip-symbol '^(aligned_alloc|calloc|free|malloc|realloc)$' \
+    --regex \
+    ${out}/lib/${lib}
+done
+{% endif %}
 {% endblock %}
