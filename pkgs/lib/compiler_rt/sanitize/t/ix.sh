@@ -1,7 +1,8 @@
 {% extends '//lib/compiler_rt/t/ix.sh' %}
 
 {% block fetch %}
-{% include '//lib/llvm/19/ver.sh' %}
+{# LLVM 20 contains this important commit: https://github.com/llvm/llvm-project/pull/108913 #}
+{% include '//lib/llvm/20/ver.sh' %}
 {% endblock %}
 
 {% block patch %}
@@ -37,13 +38,19 @@ sed -i \
   '/SANITIZER_SOURCES_NOTERMINATION/a sanitizer_fake_dlsym.cpp' \
   compiler-rt/lib/sanitizer_common/CMakeLists.txt
 
-cat << EOF > compiler-rt/lib/sanitizer_common/sanitizer_fake_dlsym.cpp
+cat << 'EOF' > compiler-rt/lib/sanitizer_common/sanitizer_fake_dlsym.cpp
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 extern "C"
 void* {{uniq_id}}_dlsym(void* handle, const char* symbol) {
-  fprintf(stderr, "dlsym() was not supposed to be called");
-  abort();
+  // Called from `InitializeSwiftDemangler()` in `compiler-rt/lib/sanitizer_common/sanitizer_symbolizer_posix_libcdep.cpp`
+  bool known_call = handle == nullptr && strcmp(symbol, "swift_demangle") == 0;
+  if (!known_call) {
+    fprintf(stderr, "dlsym() was not supposed to be called with %p:%s\n", handle, symbol);
+    abort();
+  }
+  return nullptr;
 }
 EOF
 
