@@ -33,15 +33,20 @@ lib/musl/env
 {% block setup_target_flags %}
 export PICFLAGS="-fno-pic -fno-pie"
 export CPPFLAGS="${PICFLAGS} ${CPPFLAGS}"
+{% if sanitize %}
+>no_sanitize.txt
+for file in __init_tls __libc_start_main __stack_chk_fail crt1
+do
+  echo "src:*/${file}.c" >>no_sanitize.txt
+done
+export CPPFLAGS="-fsanitize-ignorelist=${PWD}/no_sanitize.txt ${CPPFLAGS}"
+{% endif %}
 {% endblock %}
 
 {% block patch %}
 cat << EOF > src/stdlib/dso_handle.c
 void* __dso_handle = (void*)&__dso_handle;
 EOF
-{% if sanitize == 'address' %}
-sed -e '/int main();/a void __asan_init();' -e '/int argc =/i __asan_init();' -i crt/crt1.c
-{% endif %}
 {% endblock %}
 
 {% block install %}
