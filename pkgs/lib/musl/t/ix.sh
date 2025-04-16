@@ -39,7 +39,13 @@ for file in __init_tls __libc_start_main __stack_chk_fail crt1
 do
   echo "src:*/${file}.c" >>no_sanitize.txt
 done
-for func in __strchrnul
+# String functions in musl intentionall go OOB reads:
+# https://inbox.vuxu.org/musl/20160105164640.GL23362@port70.net/
+# Also, the sanitizer runtime wants to call `{get,set}rlimit()`
+# during the initialization for various reasons. This happens
+# before the shadow memory is set up, so we need to use non-instrumented
+# versions of these functions.
+for func in __strchrnul getrlimit setrlimit
 do
   echo "fun:${func}" >>no_sanitize.txt
 done
