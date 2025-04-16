@@ -39,6 +39,10 @@ for file in __init_tls __libc_start_main __stack_chk_fail crt1
 do
   echo "src:*/${file}.c" >>no_sanitize.txt
 done
+for func in __strchrnul
+do
+  echo "fun:${func}" >>no_sanitize.txt
+done
 export CPPFLAGS="-fsanitize-ignorelist=${PWD}/no_sanitize.txt ${CPPFLAGS}"
 {% endif %}
 {% endblock %}
