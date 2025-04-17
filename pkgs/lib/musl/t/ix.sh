@@ -45,7 +45,7 @@ done
 # during the initialization for various reasons. This happens
 # before the shadow memory is set up, so we need to use non-instrumented
 # versions of these functions.
-for func in __strchrnul getrlimit setrlimit
+for func in __strchrnul strlen getrlimit setrlimit
 do
   echo "fun:${func}" >>no_sanitize.txt
 done
