@@ -34,18 +34,18 @@ lib/musl/env
 export PICFLAGS="-fno-pic -fno-pie"
 export CPPFLAGS="${PICFLAGS} ${CPPFLAGS}"
 {% if sanitize %}
+# Avoid instrumenting libc initialization functions that
+# are called before the sanitizer runtime is initialized.
 >no_sanitize.txt
 for file in __init_tls __libc_start_main __stack_chk_fail crt1
 do
   echo "src:*/${file}.c" >>no_sanitize.txt
 done
-# String functions in musl intentionall go OOB reads:
-# https://inbox.vuxu.org/musl/20160105164640.GL23362@port70.net/
 # Also, the sanitizer runtime wants to call `{get,set}rlimit()`
 # during the initialization for various reasons. This happens
 # before the shadow memory is set up, so we need to use non-instrumented
 # versions of these functions.
-for func in __strchrnul strlen getrlimit setrlimit
+for func in getrlimit setrlimit
 do
   echo "fun:${func}" >>no_sanitize.txt
 done
@@ -57,6 +57,19 @@ export CPPFLAGS="-fsanitize-ignorelist=${PWD}/no_sanitize.txt ${CPPFLAGS}"
 cat << EOF > src/stdlib/dso_handle.c
 void* __dso_handle = (void*)&__dso_handle;
 EOF
+{% if sanitize %}
+# String functions in musl intentionally do OOB reads:
+# https://inbox.vuxu.org/musl/20160105164640.GL23362@port70.net/
+# This is obviously a problem for sanitizers.
+# Thankfully, the problematic patterns are gated with `__GNUC__`,
+# so we can disable them here.
+for file in memccpy memchr stpcpy stpncpy strchrnul strlcpy strlen
+do
+  sed -i \
+    's/#ifdef __GNUC__/#ifdef PLZ_NO_UNSAFE_SHENANIGANS/' \
+    src/string/${file}.c
+done
+{% endif %}
 {% endblock %}
 
 {% block install %}
