@@ -5,6 +5,10 @@
 {% include '//lib/llvm/20/ver.sh' %}
 {% endblock %}
 
+{% block sanitizer_name %}
+{{ix.error('The sanitizer_name block was supposed to be overriden but it wasn\'t')}}
+{% endblock %}
+
 {% block patch %}
 {{super()}}
 # Ignore any attempts to build shared sanitizers.
@@ -71,6 +75,7 @@ COMPILER_RT_BUILD_CTX_PROFILE=OFF
 COMPILER_RT_BUILD_MEMPROF=OFF
 COMPILER_RT_BUILD_ORC=OFF
 COMPILER_RT_BUILD_GWP_ASAN=OFF
+COMPILER_RT_SANITIZERS_TO_BUILD={{self.sanitizer_name()}}
 {% endblock %}
 
 {% block cpp_includes %}
@@ -84,7 +89,7 @@ dlsym
 
 {% block env %}
 export LDFLAGS="-resource-dir=${out} \${LDFLAGS}"
-export SANITIZER_SYMBOLS_TO_REDEFINE="${out}/lib/aux/symbols_to_redefine.txt"
+export IX_SANITIZER_SYMBOLS_TO_REDEFINE="${out}/lib/aux/symbols_to_redefine.txt"
 {% endblock %}
 
 {% block install %}
@@ -114,7 +119,7 @@ done
 
 sed 's/.*/void __real_&(){}/' non_intercepted_symbols.txt > fake_reals.c
 cc -O2 -c fake_reals.c
-ar qs $(find ${out}/lib -name '*libclang_rt.asan-*' | head -n1) fake_reals.o
+ar qs $(find ${out}/lib -name '*libclang_rt.{{self.sanitizer_name()}}-*' | head -n1) fake_reals.o
 
 # We always want to use the intercepted function handlers, so make them non-weak.
 find ${out}/lib -name '*.a' | while read l
