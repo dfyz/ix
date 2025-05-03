@@ -22,7 +22,7 @@ sed -e 's|_LIBCPP_END_NAMESPACE_STD|#include "fix.h"|' \
 for lib in libc++unwind.a libc++abi.a
 do
   llvm-objcopy \
-    --redefine-syms=${SANITIZER_SYMBOLS_TO_REDEFINE} \
+    --redefine-syms=${IX_SANITIZER_SYMBOLS_TO_REDEFINE} \
     --skip-symbol '^(aligned_alloc|calloc|free|malloc|realloc)$' \
     --regex \
     ${out}/lib/${lib}
