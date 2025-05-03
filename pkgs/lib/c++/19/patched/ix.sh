@@ -21,11 +21,7 @@ sed -e 's|_LIBCPP_END_NAMESPACE_STD|#include "fix.h"|' \
 {% if sanitize %}
 for lib in libc++unwind.a libc++abi.a
 do
-  llvm-objcopy \
-    --redefine-syms=${IX_SANITIZER_SYMBOLS_TO_REDEFINE} \
-    --skip-symbol '^(aligned_alloc|calloc|free|malloc|realloc)$' \
-    --regex \
-    ${out}/lib/${lib}
+  ${IX_SANITIZER_SYMBOL_REDEFINER} ${out}/lib/${lib}
 done
 {% endif %}
 {% endblock %}

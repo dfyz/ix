@@ -78,14 +78,9 @@ cd ${out}/lib
 ar q libcrt.a crt1.o crti.o crtn.o
 ranlib libcrt.a
 {% if sanitize %}
-find ${out}/lib -name '*.a' -or -name '*.o' | while read l
-do
-  llvm-objcopy \
-    --redefine-syms=${IX_SANITIZER_SYMBOLS_TO_REDEFINE} \
-    --skip-symbol '^(calloc|free|malloc|realloc)$' \
-    --regex \
-    ${l}
-done
+find ${out}/lib \
+  '(' -name '*.a' -or -name '*.o' ')' \
+  -exec ${IX_SANITIZER_SYMBOL_REDEFINER} '{}' ';'
 {% endif %}
 {% endblock %}
 

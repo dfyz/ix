@@ -89,7 +89,7 @@ dlsym
 
 {% block env %}
 export LDFLAGS="-resource-dir=${out} \${LDFLAGS}"
-export IX_SANITIZER_SYMBOLS_TO_REDEFINE="${out}/lib/aux/symbols_to_redefine.txt"
+export IX_SANITIZER_SYMBOL_REDEFINER="${out}/lib/aux/redefiner.sh"
 {% endblock %}
 
 {% block install %}
@@ -97,6 +97,19 @@ export IX_SANITIZER_SYMBOLS_TO_REDEFINE="${out}/lib/aux/symbols_to_redefine.txt"
 mkdir -p ${out}/include
 cp -R compiler-rt/include/sanitizer ${out}/include
 
+# The sanitizer runtime will provide a definiton of `XXX` symbol (which is aliased
+# to `___interceptor_XXX`) for each intercepted `XXX`. With patches above,
+# `___interceptor_XXX` now depends on `__real_XXX`, which is the intercepted
+# function that is supposed to be provided by one of the dependencies
+# of the final linked binary.
+#
+# Here, we collect all `XXX` symbols and save them in `intercepted_symbols.txt`,
+# so that we can later rename every intercepted `XXX` in  to `__real_XXX` in
+# the dependencies.
+#
+# Some of the intercepted symbols will never be used in IX, or at least when building
+# with musl. For those, we create a fake `__real_XXX` that does nothing and remove
+# the definition provided by the sanitizer.
 find ${out}/lib -name '*.a' \
   | xargs llvm-nm -j \
   | sed -n '/^___interceptor_/ {
@@ -121,7 +134,8 @@ sed 's/.*/void __real_&(){}/' non_intercepted_symbols.txt > fake_reals.c
 cc -O2 -c fake_reals.c
 ar qs $(find ${out}/lib -name '*libclang_rt.{{self.sanitizer_name()}}-*' | head -n1) fake_reals.o
 
-# We always want to use the intercepted function handlers, so make them non-weak.
+# Make the `XXX` definitions provided by the sanitizer non-weak (so that they can't be accidentally
+# overriden), and remove the definitions we're not going to use.
 find ${out}/lib -name '*.a' | while read l
 do
   llvm-objcopy \
@@ -130,7 +144,11 @@ do
     ${l}
 done
 
-# Any library that wants to define any of the intercepted symbols has to go through this redefinition list.
+# Any library that wants to define any of the intercepted symbols has to go through the redefiner.
 mkdir -p ${out}/share
-sed 's/.*/& __real_&/' intercepted_symbols.txt > ${out}/share/symbols_to_redefine.txt
+mv intercepted_symbols.txt ${out}/share/
+cat << 'EOF' > ${out}/share/redefiner.sh
+{% include 'redefiner.sh' %}
+EOF
+chmod +x ${out}/share/redefiner.sh
 {% endblock %}
