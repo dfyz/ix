@@ -18,16 +18,15 @@ that does nothing, and remove the definition provided by the sanitizer.
 The symbols listed in this parent template are used by all sanitizers and come from
 `compiler-rt/lib/sanitizer_common/sanitizer_common_interceptors.inc`.
 Child templates can add more.
-
-dlopen()/dlclose() are obviously not present in IX
-pthread_mutexattr_getprioceiling() is present in POSIX, but not in musl
-pthread_mutexattr_getrobust_np() is a GNU extension, so not present in musl
-__b64_ntop()/__b64_pton() are not present in musl
 #}
+{# dlopen()/dlclose() are obviously not present in IX #}
 dlopen
 dlclose
+{# pthread_mutexattr_getprioceiling() is present in POSIX, but not in musl #}
 pthread_mutexattr_getprioceiling
+{# pthread_mutexattr_getrobust_np() is a GNU extension, so not present in musl #}
 pthread_mutexattr_getrobust_np
+{# __b64_ntop()/__b64_pton() are not present in musl #}
 __b64_ntop
 __b64_pton
 {% endblock %}
