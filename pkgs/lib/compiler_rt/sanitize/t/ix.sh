@@ -133,7 +133,8 @@ cp -R compiler-rt/include/sanitizer ${out}/include
 {{self.non_intercepted_symbols()}}
 EOF
 
-find ${out}/lib -name '*.a' \
+SANITIZER_LIB_PATTERN='*libclang_rt.{{self.sanitizer_name()}}-*.a'
+find ${out}/lib -name ${SANITIZER_LIB_PATTERN} \
   | xargs llvm-nm -j \
   | sed -n '/^___interceptor_/{
     s/^___interceptor_//
@@ -145,11 +146,11 @@ find ${out}/lib -name '*.a' \
 
 sed 's/.*/void __real_&(){}/' non_intercepted_symbols.txt > fake_reals.c
 cc -O2 -c fake_reals.c
-ar qs $(find ${out}/lib -name '*libclang_rt.{{self.sanitizer_name()}}-*' | head -n1) fake_reals.o
+ar qs $(find ${out}/lib -name ${SANITIZER_LIB_PATTERN} | head -n1) fake_reals.o
 
 # Make the `XXX` definitions provided by the sanitizer non-weak (so that they can't be accidentally
 # overriden), and remove the definitions we're not going to use.
-find ${out}/lib -name '*.a' | while read l
+find ${out}/lib -name ${SANITIZER_LIB_PATTERN} | while read l
 do
   llvm-objcopy \
     --strip-symbols=non_intercepted_symbols.txt \
