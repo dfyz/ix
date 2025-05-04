@@ -23,13 +23,13 @@ lib/darwin/framework/CoreFoundation
 lib/shim/dll(dll_name=advapi32)
 lib/shim/dll(dll_name=dbghelp)
 {% endif %}
-{% if sanitize %}
-lib/build/sanitize/hack_cmake
-{% endif %}
 {% endblock %}
 
 {% block bld_libs %}
 lib/kernel
+{% if sanitize %}
+lib/build/sanitize/hack_cmake
+{% endif %}
 {% endblock %}
 
 {% block patch %}
