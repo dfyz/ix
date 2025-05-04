@@ -14,7 +14,7 @@ lib/kernel
 lib/shim/alloc
 {% endif %}
 {% if sanitize %}
-lib/shim/sanitizer_support
+lib/build/sanitize/hack_cmake
 {% endif %}
 {% endblock %}
 
