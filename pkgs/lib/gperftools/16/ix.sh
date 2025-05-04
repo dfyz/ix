@@ -22,6 +22,16 @@ lib/c++/dispatch
 lib/c/naked
 lib/bumpalloc/small
 lib/compiler_rt/builtins
+{% if sanitize %}
+{#
+gperftools will try to build some tests/benchmarks, which will fail
+to link due to duplicate `*alloc()` symbols because we haven't yet
+redefined them to `__real_*alloc()` at this point.
+The tests/benchmarks are never used, so we can just force the linker
+to allow duplicate symbols so that the linking can succeed.
+#}
+lib/build/muldefs
+{% endif %}
 {% endblock %}
 
 {% block patch %}
@@ -54,4 +64,8 @@ __environ=environ
 {% block env %}
 export ac_cv_func_malloc_0_nonnull=yes
 export ac_cv_func_realloc_0_nonnull=yes
+{% endblock %}
+
+{% block install %}
+{{super()}}{% if sanitize %}${IX_SANITIZER_SYMBOL_REDEFINER} ${out}/lib/libtcmalloc_minimal.a{% endif %}
 {% endblock %}
