@@ -8,7 +8,9 @@
 dladdr
 dlerror
 {# musl doesn't implement any of the below functions #}
+__libc_memalign
 __strdup
+mallinfo
 strtouq
 wmempcpy
 {#
