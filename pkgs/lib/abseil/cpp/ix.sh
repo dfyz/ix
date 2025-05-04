@@ -24,7 +24,7 @@ lib/shim/dll(dll_name=advapi32)
 lib/shim/dll(dll_name=dbghelp)
 {% endif %}
 {% if sanitize %}
-lib/shim/sanitizer_support
+lib/build/sanitize/hack_cmake
 {% endif %}
 {% endblock %}
 
