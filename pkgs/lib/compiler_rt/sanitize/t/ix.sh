@@ -9,6 +9,29 @@
 {{ix.error('The sanitizer_name block was supposed to be overriden but it wasn\'t')}}
 {% endblock %}
 
+{% block non_intercepted_symbols %}
+{#
+Some of the intercepted symbols will never be used in IX, or at least when building
+with musl. These symbols should be listed here. For them, we create a fake `__real_XXX`
+that does nothing, and remove the definition provided by the sanitizer.
+
+The symbols listed in this parent template are used by all sanitizers and come from
+`compiler-rt/lib/sanitizer_common/sanitizer_common_interceptors.inc`.
+Child templates can add more.
+
+dlopen()/dlclose() are obviously not present in IX
+pthread_mutexattr_getprioceiling() is present in POSIX, but not in musl
+pthread_mutexattr_getrobust_np() is a GNU extension, so not present in musl
+__b64_ntop()/__b64_pton() are not present in musl
+#}
+dlopen
+dlclose
+pthread_mutexattr_getprioceiling
+pthread_mutexattr_getrobust_np
+__b64_ntop
+__b64_pton
+{% endblock %}
+
 {% block patch %}
 {{super()}}
 # Ignore any attempts to build shared sanitizers.
@@ -103,32 +126,23 @@ cp -R compiler-rt/include/sanitizer ${out}/include
 # function that is supposed to be provided by one of the dependencies
 # of the final linked binary.
 #
-# Here, we collect all `XXX` symbols and save them in `intercepted_symbols.txt`,
-# so that we can later rename every intercepted `XXX` in  to `__real_XXX` in
+# Here, we collect all `XXX` symbols and save them in `intercepted_symbols.txt`
+# (taking care of the symbols listed in the `non_intercepted_symbols` block first),
+# so that we can later rename every intercepted `XXX` to `__real_XXX` in
 # the dependencies.
-#
-# Some of the intercepted symbols will never be used in IX, or at least when building
-# with musl. For those, we create a fake `__real_XXX` that does nothing and remove
-# the definition provided by the sanitizer.
+(cat | sort -u | grep -v '^$') << 'EOF' > non_intercepted_symbols.txt
+{{self.non_intercepted_symbols()}}
+EOF
+
 find ${out}/lib -name '*.a' \
   | xargs llvm-nm -j \
-  | sed -n '/^___interceptor_/ {
+  | sed -n '/^___interceptor_/{
     s/^___interceptor_//
-    # dlopen()/dlclose() are obviously not present in IX
-    # pthread_mutexattr_getprioceiling() is present in POSIX, but not in musl
-    # pthread_mutexattr_getrobust_np() is a GNU extension, so not present in musl
-    # __b64_ntop()/__b64_pton() are not present in musl
-    /^dlopen\|dlclose\|\(pthread_mutexattr_\(getprioceiling\|getrobust_np\)\)\|\(__b64_\(ntop\|pton\)\)$/ {
-      w non_intercepted_symbols.txt
-      b
-    }
-    w intercepted_symbols.txt
-  }'
-
-for fn in intercepted_symbols.txt non_intercepted_symbols.txt
-do
-  sort -u -o ${fn} ${fn}
-done
+    p
+  }' \
+  | sort -u \
+  | grep -Fvx -f non_intercepted_symbols.txt \
+  > intercepted_symbols.txt
 
 sed 's/.*/void __real_&(){}/' non_intercepted_symbols.txt > fake_reals.c
 cc -O2 -c fake_reals.c
