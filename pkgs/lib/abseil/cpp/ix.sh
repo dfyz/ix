@@ -23,6 +23,9 @@ lib/darwin/framework/CoreFoundation
 lib/shim/dll(dll_name=advapi32)
 lib/shim/dll(dll_name=dbghelp)
 {% endif %}
+{% if sanitize %}
+lib/shim/sanitizer_support
+{% endif %}
 {% endblock %}
 
 {% block bld_libs %}
