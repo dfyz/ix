@@ -33,24 +33,6 @@ lib/musl/env
 {% block setup_target_flags %}
 export PICFLAGS="-fno-pic -fno-pie"
 export CPPFLAGS="${PICFLAGS} ${CPPFLAGS}"
-{% if sanitize %}
-# Avoid instrumenting libc initialization functions that
-# are called before the sanitizer runtime is initialized.
->no_sanitize.txt
-for file in __init_tls __libc_start_main __stack_chk_fail crt1
-do
-  echo "src:*/${file}.c" >>no_sanitize.txt
-done
-# Also, the sanitizer runtime wants to call `{get,set}rlimit()`
-# during the initialization for various reasons. This happens
-# before the shadow memory is set up, so we need to use non-instrumented
-# versions of these functions.
-for func in getrlimit setrlimit
-do
-  echo "fun:${func}" >>no_sanitize.txt
-done
-export CPPFLAGS="-fsanitize-ignorelist=${PWD}/no_sanitize.txt ${CPPFLAGS}"
-{% endif %}
 {% endblock %}
 
 {% block patch %}
@@ -69,6 +51,37 @@ do
     's/#ifdef __GNUC__/#ifdef PLZ_NO_UNSAFE_SHENANIGANS/' \
     src/string/${file}.c
 done
+
+# Avoid instrumenting libc initialization functions that
+# are called before the sanitizer runtime is initialized.
+#
+# It is tempting to use `-fsanitize-ignorelist=...` for
+# this purpose, but it is not enough for some sanitizers
+# such as MemorySanitizer: they will not report ignored
+# functions, but will still instrument them.
+PLZ_NO_SAN="__attribute__((disable_sanitizer_instrumentation))"
+sed -i \
+  "/int __init_tp\|void \*__copy_tls\|void static_init_tls/i ${PLZ_NO_SAN}" \
+  src/env/__init_tls.c
+sed -i \
+  "/void __init_libc\|void libc_start_init\|int __libc_start_main\|int libc_start_main_stage2/i ${PLZ_NO_SAN}" \
+  src/env/__libc_start_main.c
+sed -i \
+  "/void __init_ssp\|void __stack_chk_fail/i ${PLZ_NO_SAN}" \
+  src/env/__stack_chk_fail.c
+sed -i \
+  "/void _start_c/i ${PLZ_NO_SAN}" \
+  crt/crt1.c
+# Also, the sanitizer runtime wants to call `{get,set}rlimit()`
+# during the initialization for various reasons. This happens
+# before the shadow memory is set up, so we need to use
+# non-instrumented versions of these functions.
+sed -i \
+  "/int getrlimit/i ${PLZ_NO_SAN}" \
+  src/misc/getrlimit.c
+sed -i \
+  "/int setrlimit\|void do_setrlimit/i ${PLZ_NO_SAN}" \
+  src/misc/setrlimit.c
 {% endif %}
 {% endblock %}
 
