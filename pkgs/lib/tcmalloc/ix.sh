@@ -47,9 +47,6 @@ ar q libtcmalloc.a $(find . -type f -name '*.o')
 {% block install %}
 mkdir ${out}/lib
 cp libtcmalloc.a ${out}/lib/
-{% if sanitize %}
-${IX_SANITIZER_SYMBOL_REDEFINER} ${out}/lib/libtcmalloc.a
-{% endif %}
 {% endblock %}
 
 {% block env %}
