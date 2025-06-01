@@ -48,4 +48,7 @@ export COFLAGS="--with-libintl-prefix=${out} \${COFLAGS}"
 {% block install %}
 {{super()}}
 test -f ${out}/lib/libintl.a
+{% if sanitize %}
+${IX_SANITIZER_SYMBOL_REDEFINER} ${out}/lib/libintl.a
+{% endif %}
 {% endblock %}
