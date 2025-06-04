@@ -27,9 +27,6 @@ lib/shim/dll(dll_name=dbghelp)
 
 {% block bld_libs %}
 lib/kernel
-{% if sanitize %}
-lib/build/sanitize/hack_cmake
-{% endif %}
 {% endblock %}
 
 {% block patch %}
