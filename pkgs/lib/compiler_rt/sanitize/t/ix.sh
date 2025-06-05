@@ -33,17 +33,17 @@ __b64_pton
 
 {% block patch %}
 {{super()}}
-# Ignore any attempts to build shared sanitizers.
+{# Ignore any attempts to build shared sanitizers. #}
 sed -i \
   '/function(add_compiler_rt_runtime name type)/a if(type MATCHES "^SHARED$")\n  return()\nendif()' \
   compiler-rt/cmake/Modules/AddCompilerRT.cmake
 
-# Convert `DoesNotSupportStaticLinking()` into a no-op, since we are going to use static linking anyway.
+{# Convert `DoesNotSupportStaticLinking()` into a no-op, since we are going to use static linking anyway. #}
 sed -i \
   '/volatile auto x = &kDynamic;/d' \
   compiler-rt/lib/interception/interception.h
 
-# Intercept the function at compile-time instead of run-time.
+{# Intercept the function at compile-time instead of run-time. #}
 sed -i \
 '
 /#endif.*INTERCEPTION_LINUX_H/i\
@@ -59,7 +59,7 @@ sed -i \
 ' \
   compiler-rt/lib/interception/interception.h
 
-# With compile-time binding, dlsym() is not used and can be stubbed.
+{# With compile-time binding, dlsym() is not used and can be stubbed. #}
 sed -i \
   '/SANITIZER_SOURCES_NOTERMINATION/a sanitizer_fake_dlsym.cpp' \
   compiler-rt/lib/sanitizer_common/CMakeLists.txt
@@ -80,7 +80,7 @@ void* {{uniq_id}}_dlsym(void* handle, const char* symbol) {
 }
 EOF
 
-# `__dn_comp` is called `dn_comp` in musl.
+{# `__dn_comp` is called `dn_comp` in musl. #}
 sed -i \
   's/define DN_COMP_INTERCEPTOR_NAME __dn_comp/define DN_COMP_INTERCEPTOR_NAME dn_comp/' \
   compiler-rt/lib/sanitizer_common/sanitizer_common_interceptors.inc
@@ -119,16 +119,18 @@ export IX_SANITIZER_SYMBOL_REDEFINER="${out}/lib/aux/redefiner.sh"
 mkdir -p ${out}/include
 cp -R compiler-rt/include/sanitizer ${out}/include
 
-# The sanitizer runtime will provide a definiton of `XXX` symbol (which is aliased
-# to `___interceptor_XXX`) for each intercepted `XXX`. With patches above,
-# `___interceptor_XXX` now depends on `__real_XXX`, which is the intercepted
-# function that is supposed to be provided by one of the dependencies
-# of the final linked binary.
-#
-# Here, we collect all `XXX` symbols and save them in `intercepted_symbols.txt`
-# (taking care of the symbols listed in the `non_intercepted_symbols` block first),
-# so that we can later rename every intercepted `XXX` to `__real_XXX` in
-# the dependencies.
+{#
+The sanitizer runtime will provide a definiton of `XXX` symbol (which is aliased
+to `___interceptor_XXX`) for each intercepted `XXX`. With patches above,
+`___interceptor_XXX` now depends on `__real_XXX`, which is the intercepted
+function that is supposed to be provided by one of the dependencies
+of the final linked binary.
+
+Here, we collect all `XXX` symbols and save them in `intercepted_symbols.txt`
+(taking care of the symbols listed in the `non_intercepted_symbols` block first),
+so that we can later rename every intercepted `XXX` to `__real_XXX` in
+the dependencies.
+#}
 (cat | sort -u | grep -v '^$') << 'EOF' > non_intercepted_symbols.txt
 {{self.non_intercepted_symbols()}}
 EOF
@@ -148,8 +150,10 @@ sed 's/.*/void __real_&(){}/' non_intercepted_symbols.txt > fake_reals.c
 cc -O2 -c fake_reals.c
 ar qs $(find ${out}/lib -name ${SANITIZER_LIB_PATTERN} | head -n1) fake_reals.o
 
-# Make the `XXX` definitions provided by the sanitizer non-weak (so that they can't be accidentally
-# overriden), and remove the definitions we're not going to use.
+{#
+Make the `XXX` definitions provided by the sanitizer non-weak (so that they can't be accidentally
+overriden), and remove the definitions we're not going to use.
+#}
 find ${out}/lib -name ${SANITIZER_LIB_PATTERN} | while read l
 do
   llvm-objcopy \
@@ -158,7 +162,7 @@ do
     ${l}
 done
 
-# Any library that wants to define any of the intercepted symbols has to go through the redefiner.
+{# Any library that wants to define any of the intercepted symbols has to go through the redefiner. #}
 mkdir -p ${out}/share
 mv intercepted_symbols.txt ${out}/share/
 cat << 'EOF' > ${out}/share/redefiner.sh
