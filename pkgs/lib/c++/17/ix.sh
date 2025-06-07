@@ -96,6 +96,12 @@ mv ${out}/lib/libunwind.a ${out}/lib/libc++unwind.a
 {% if darwin %}
 llvm-objcopy --redefine-sym ___muloti4=___libcplpl_muloti4 ${out}/lib/libc++.a
 {% endif %}
+{% if sanitize %}
+for lib in libc++unwind.a libc++abi.a
+do
+  ${IX_SANITIZER_SYMBOL_REDEFINER} ${out}/lib/${lib}
+done
+{% endif %}
 {% endblock %}
 
 {% block test %}
