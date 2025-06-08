@@ -112,6 +112,9 @@ dlsym
 {% block env %}
 export LDFLAGS="-resource-dir=${out} \${LDFLAGS}"
 export IX_SANITIZER_SYMBOL_REDEFINER="${out}/lib/aux/redefiner.sh"
+{% for x in ix.parse_list(self.non_intercepted_symbols()) %}
+export LDFLAGS="-Wl,--defsym=__real_{{x}}=0 \${LDFLAGS}"
+{% endfor %}
 {% endblock %}
 
 {% block install %}
@@ -145,10 +148,6 @@ find ${out}/lib -name ${SANITIZER_LIB_PATTERN} \
   | sort -u \
   | grep -Fvx -f non_intercepted_symbols.txt \
   > intercepted_symbols.txt
-
-sed 's/.*/void __real_&(){}/' non_intercepted_symbols.txt > fake_reals.c
-cc -O2 -c fake_reals.c
-ar qs $(find ${out}/lib -name ${SANITIZER_LIB_PATTERN} | head -n1) fake_reals.o
 
 {#
 Make the `XXX` definitions provided by the sanitizer non-weak (so that they can't be accidentally
