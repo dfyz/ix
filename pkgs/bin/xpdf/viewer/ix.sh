@@ -3,9 +3,7 @@
 {% block bld_libs %}
 lib/qt/6/base
 lib/qt/6/deps
-{% if sanitize != 'address' %}
 lib/{{allocator}}/trim(delay=1,bytes=1000000)
-{% endif %}
 {{super()}}
 {% endblock %}
 
