@@ -4,6 +4,14 @@
 perp
 {% endblock %}
 
+{% block host_libs %}
+lib/c
+{% endblock %}
+
+{% block patch %}
+sed -i '/-o.*mk/s/$(CC)/$(HOST_CC)/' lasagna/Makefile
+{% endblock %}
+
 {% block version %}
 2.07
 {% endblock %}
