@@ -35,6 +35,10 @@ bld/texinfo
 bld/texinfo/lite
 bld/compiler
 bld/libtool
+# configure: error: Unsupported target riscv64
+{% if not riscv64 %}
+bld/cctools
+{% endif %}
 bld/kuroko
 bld/xz
 bin/dash
