@@ -1,7 +1,7 @@
 {% extends 'ix2.sh' %}
 
 {% block std_box %}
-  {% if linux and 'compress' in build_flags %}
+  {% if linux and 'compress' in build_flags and not riscv64 %}
     bld/pack
   {% endif %}
   {% if 'fix_shebangs' in build_flags %}
@@ -21,7 +21,7 @@
 
 {% block step_install %}
 {{super()}}
-{% if linux and 'compress' in build_flags %}
+{% if linux and 'compress' in build_flags and not riscv64 %}
 find ${out}/bin -type f -executable | while read l; do
     packexe "${l}"
 done
