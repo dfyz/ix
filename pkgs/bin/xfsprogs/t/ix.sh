@@ -9,6 +9,10 @@ lib/kernel
 lib/e2fsprogs
 {% endblock %}
 
+{% block host_libs %}
+lib/c
+{% endblock %}
+
 {% block bld_tool %}
 bin/gzip
 bld/bash
@@ -22,6 +26,7 @@ bld/gettext
 
 {% block make_flags %}
 INSTALL=install
+BUILD_CC=${HOST_CC}
 {% endblock %}
 
 {% block patch %}
