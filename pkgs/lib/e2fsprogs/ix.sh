@@ -15,6 +15,10 @@ https://github.com/tytso/e2fsprogs/archive/refs/tags/v{{self.version().strip()}}
 
 {% block conf_ver %}2/71{% endblock %}
 
+{% block host_libs %}
+lib/c
+{% endblock %}
+
 {% block lib_deps %}
 lib/c
 lib/linux/util
@@ -41,4 +45,9 @@ cat << EOF > po/Makefile
 all:
 install:
 EOF
+{% endblock %}
+
+{% block make_flags %}
+{{super()}}
+BUILD_CC=${HOST_CC}
 {% endblock %}
