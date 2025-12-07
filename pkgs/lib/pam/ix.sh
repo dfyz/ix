@@ -8,6 +8,10 @@ linux-pam
 1.7.1
 {% endblock %}
 
+{% block host_libs %}
+lib/c
+{% endblock %}
+
 {% block fetch %}
 https://github.com/linux-pam/linux-pam/archive/refs/tags/v{{self.version().strip()}}.tar.gz
 82aadd97eb697965b577069c12046a4dd1be68361a9978c708698d2a1ee9b6d1
