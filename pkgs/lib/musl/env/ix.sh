@@ -65,4 +65,11 @@ export gl_cv_func_posix_spawn_file_actions_addclose_works=yes
 # TODO(pg83): check it
 export bash_cv_func_snprintf=yes
 export bash_cv_func_sigsetjmp=present
+{#
+For cross-compiling, avoid the fallback implemented in
+https://gitweb.git.savannah.gnu.org/gitweb/?p=gnulib.git;a=commit;h=f7576a33332e4bc63fc0b15801a82abe865304ca
+This fallback doesn't work for musl because
+PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP is a glibc-ism.
+#}
+export gl_cv_func_pthread_rwlock_good_waitqueue=yes
 {% endblock %}

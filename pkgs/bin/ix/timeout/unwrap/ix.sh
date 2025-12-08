@@ -1,9 +1,8 @@
 {% extends '//die/c/autohell.sh' %}
 
 {% block fetch %}
-{# FIXME: upgrade this back to 9.9 after cross-compilation issues are solved #}
-https://ftp.gnu.org/gnu/coreutils/coreutils-9.5.tar.gz
-767ae6a22950ec42f3ba5f7c1de79dd27800ee8e9b8642da5dedb5974a1741e5
+https://ftp.gnu.org/gnu/coreutils/coreutils-9.9.tar.gz
+91a719fcf923de686016f2c8d084a8be1f793f34173861273c4668f7c65af94a
 {% endblock %}
 
 {% block bld_libs %}

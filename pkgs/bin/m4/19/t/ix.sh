@@ -24,18 +24,6 @@ lib/sigsegv
 bld/help2man
 {% endblock %}
 
-{% block configure %}
-{{ super() }}
-{#
-For cross-compiling, avoid the fallback implemented in
-https://gitweb.git.savannah.gnu.org/gitweb/?p=gnulib.git;a=commit;h=f7576a33332e4bc63fc0b15801a82abe865304ca
-This fallback doesn't work for musl because
-PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP is a glibc-ism.
-#}
-{# FIXME: this should eventually go to lib/musl/env #}
-export gl_cv_func_pthread_rwlock_good_waitqueue=yes
-{% endblock %}
-
 {% block configure_flags %}
 --disable-c++
 {% endblock %}
