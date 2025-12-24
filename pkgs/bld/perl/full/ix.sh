@@ -1,4 +1,4 @@
-{% extends '//bin/perl/ix.sh' %}
+{% extends '//bin/perl/host/ix.sh' %}
 
 {% block fetch %}
 {{super()}}
@@ -9,6 +9,11 @@ d331332491c51cccfb4cb94ffc44f9cd73378e618498d4a37df9e043661c515d
 {% block bld_libs %}
 {{super()}}
 lib/expat
+{% endblock %}
+
+{% block bld_tool %}
+bld/perl
+{{super()}}
 {% endblock %}
 
 {% block unpack %}
@@ -27,4 +32,17 @@ cd ..
 cat << EOF >> config.sh
 export static_ext="\${static_ext} XML/Parser/Expat"
 EOF
+{% endblock %}
+
+{% block build %}
+make -j ${make_thrs} miniperl
+
+cat << EOF > miniperl
+#!$(which sh)
+perl -I${PWD} "\$@"
+EOF
+
+chmod +x miniperl
+
+{{super()}}
 {% endblock %}
